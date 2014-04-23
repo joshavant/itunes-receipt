@@ -122,7 +122,7 @@ module Itunes
       itunes_env == :sandbox
     end
 
-    def self.verify!(receipt_data, allow_sandbox_receipt = false)
+    def self.verify!(receipt_data, allow_sandbox_receipt = false, return_response_object = false)
       request_data = {:'receipt-data' => receipt_data}
       request_data.merge!(:password => Itunes.shared_secret) if Itunes.shared_secret
       response = post_to_endpoint(request_data)
@@ -135,7 +135,7 @@ module Itunes
         if allow_sandbox_receipt
           sandbox_response = post_to_endpoint(request_data, Itunes::ENDPOINT[:sandbox])
           successful_response(
-            sandbox_response.merge(:itunes_env => :sandbox)
+            sandbox_response.merge(:itunes_env => :sandbox), return_response_object
           )
         else
           raise e
@@ -153,10 +153,14 @@ module Itunes
       response = JSON.parse(response).with_indifferent_access
     end
 
-    def self.successful_response(response)
+    def self.successful_response(response, only_return_response = false)
       case response[:status]
       when 0
-        new response
+        if only_return_response
+            response
+        else
+            new response
+        end
       when 21005
         raise ReceiptServerOffline.new(response)
       when 21006
